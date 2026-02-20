@@ -2,7 +2,7 @@ import type { Company, Supervisor, Evaluation, AccessLog } from "./types"
 
 const STORE_VERSION = "4"
 
-const ADMIN_CPF = "00000000000"
+const ADMIN_CPF = "12345678909"
 
 const COMPANY_LOGOS: Record<string, string> = {
   dikma: "https://i.ibb.co/Z61BpdnN/download.png",
