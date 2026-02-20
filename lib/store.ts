@@ -1,6 +1,11 @@
 import type { Company, Supervisor, Evaluation } from "./types"
 
-const STORE_VERSION = "2"
+const STORE_VERSION = "3"
+
+const COMPANY_LOGOS: Record<string, string> = {
+  dikma: "https://i.ibb.co/Z61BpdnN/download.png",
+  arcelormittal: "https://i.ibb.co/hx2Cm5yN/Arcelor-Mittal-svg.png",
+}
 
 const KEYS = {
   companies: "eval_companies",
@@ -49,7 +54,11 @@ export function initializeStore(): void {
 
 // Companies
 export function getCompanies(): Company[] {
-  return getItem<Company[]>(KEYS.companies, DEFAULT_COMPANIES)
+  const companies = getItem<Company[]>(KEYS.companies, DEFAULT_COMPANIES)
+  return companies.map((c) => ({
+    ...c,
+    logo: c.logo || COMPANY_LOGOS[c.id] || undefined,
+  }))
 }
 
 export function addCompany(name: string): Company {

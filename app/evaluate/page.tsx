@@ -231,22 +231,20 @@ export default function EvaluatePage() {
                   className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card p-4 text-center transition-all duration-200 hover:border-primary hover:bg-accent hover:scale-[1.02] hover:shadow-md sm:p-5 active:scale-[0.98]"
                 >
                   {company.logo ? (
-                    <div className="h-12 sm:h-14 flex items-center justify-center">
-                      <Image
-                        src={company.logo}
-                        alt={company.name}
-                        width={140}
-                        height={60}
-                        className="h-12 sm:h-14 w-auto object-contain"
-                        priority
-                      />
-                    </div>
+                    <Image
+                      src={company.logo}
+                      alt={company.name}
+                      width={160}
+                      height={70}
+                      className="h-14 sm:h-16 w-auto object-contain"
+                      unoptimized
+                      priority
+                    />
                   ) : (
                     <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 sm:h-14 sm:w-14">
                       <Building2 className="h-6 w-6 text-primary sm:h-7 sm:w-7" />
                     </div>
                   )}
-                  <span className="font-medium text-card-foreground text-sm">{company.name}</span>
                 </button>
               ))}
             </div>
