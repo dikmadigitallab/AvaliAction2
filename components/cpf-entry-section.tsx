@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Lock, ArrowRight } from "lucide-react"
 import { validateCPF, formatCPF, hashCPF } from "@/lib/anonymize"
-import { addAccessLog, maskCPF } from "@/lib/store"
+import { addAccessLog, maskCPF, verifyAdminCPF, setAdminSession } from "@/lib/store"
 import { toast } from "sonner"
 
 export function CpfEntrySection() {
@@ -25,8 +25,26 @@ export function CpfEntrySection() {
     e.preventDefault()
     const cleaned = cpf.replace(/\D/g, "")
 
-    if (!validateCPF(cleaned)) {
+    if (cleaned.length !== 11) {
       toast.error("CPF invalido. Insira exatamente 11 digitos.")
+      return
+    }
+
+    // Check if admin CPF
+    if (verifyAdminCPF(cleaned)) {
+      setLoading(true)
+      addAccessLog({
+        anonymousId: "admin",
+        maskedCPF: maskCPF(cleaned),
+        action: "admin_login",
+      })
+      setAdminSession()
+      router.push("/admin/dashboard")
+      return
+    }
+
+    if (!validateCPF(cleaned)) {
+      toast.error("CPF invalido. Verifique os digitos e tente novamente.")
       return
     }
 
