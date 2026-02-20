@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { SiteHeader } from "@/components/site-header"
 import { StarRating } from "@/components/star-rating"
 import {
@@ -227,10 +228,25 @@ export default function EvaluatePage() {
                 <button
                   key={company.id}
                   onClick={() => selectCompany(company)}
-                  className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 text-left transition-all duration-200 hover:border-primary hover:bg-accent hover:scale-[1.02] hover:shadow-md sm:p-4 active:scale-[0.98]"
+                  className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card p-4 text-center transition-all duration-200 hover:border-primary hover:bg-accent hover:scale-[1.02] hover:shadow-md sm:p-5 active:scale-[0.98]"
                 >
-                  <Building2 className="h-5 w-5 text-primary" />
-                  <span className="font-medium text-card-foreground">{company.name}</span>
+                  {company.logo ? (
+                    <div className="h-12 sm:h-14 flex items-center justify-center">
+                      <Image
+                        src={company.logo}
+                        alt={company.name}
+                        width={140}
+                        height={60}
+                        className="h-12 sm:h-14 w-auto object-contain"
+                        priority
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 sm:h-14 sm:w-14">
+                      <Building2 className="h-6 w-6 text-primary sm:h-7 sm:w-7" />
+                    </div>
+                  )}
+                  <span className="font-medium text-card-foreground text-sm">{company.name}</span>
                 </button>
               ))}
             </div>

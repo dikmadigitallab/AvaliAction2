@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Image from "next/image"
 import {
   Card,
   CardContent,
@@ -193,7 +194,19 @@ export function SupervisorManagement() {
               <SelectItem value="all">Todas as empresas</SelectItem>
               {companies.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
-                  {c.name}
+                  <div className="flex items-center gap-2">
+                    {c.logo ? (
+                      <Image
+                        src={c.logo}
+                        alt={c.name}
+                        width={80}
+                        height={30}
+                        className="h-5 w-auto"
+                      />
+                    ) : (
+                      <span>{c.name}</span>
+                    )}
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -296,14 +309,26 @@ export function SupervisorManagement() {
               onChange={(e) => setNewName(e.target.value)}
               autoFocus
             />
-            <Select value={newCompanyId} onValueChange={setNewCompanyId}>
+          <Select value={newCompanyId} onValueChange={setNewCompanyId}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecionar empresa" />
               </SelectTrigger>
               <SelectContent>
                 {companies.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
-                    {c.name}
+                    <div className="flex items-center gap-2">
+                      {c.logo ? (
+                        <Image
+                          src={c.logo}
+                          alt={c.name}
+                          width={80}
+                          height={30}
+                          className="h-5 w-auto"
+                        />
+                      ) : (
+                        <span>{c.name}</span>
+                      )}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>

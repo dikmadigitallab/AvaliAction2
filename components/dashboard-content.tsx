@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Image from "next/image"
 import {
   Card,
   CardContent,
@@ -213,7 +214,19 @@ export function DashboardContent() {
               <SelectItem value="all">Todas as empresas</SelectItem>
               {companies.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
-                  {c.name}
+                  <div className="flex items-center gap-2">
+                    {c.logo ? (
+                      <Image
+                        src={c.logo}
+                        alt={c.name}
+                        width={80}
+                        height={30}
+                        className="h-5 w-auto"
+                      />
+                    ) : (
+                      <span>{c.name}</span>
+                    )}
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
