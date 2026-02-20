@@ -1,4 +1,4 @@
-import type { Company, Supervisor, Evaluation, AccessLog } from "./types"
+import type { Company, Supervisor, Evaluation, AccessLog, FormTemplate, FormQuestion } from "./types"
 
 const STORE_VERSION = "4"
 
@@ -17,6 +17,7 @@ const KEYS = {
   adminHash: "eval_admin_hash",
   initialized: "eval_initialized",
   version: "eval_store_version",
+  forms: "eval_forms",
 } as const
 
 const DEFAULT_COMPANIES: Company[] = [
@@ -198,4 +199,47 @@ export function maskCPF(cpf: string): string {
   const cleaned = cpf.replace(/\D/g, "")
   if (cleaned.length < 11) return "***.***.***-**"
   return `***.***.***.${cleaned.slice(9, 11)}`
+}
+
+// Forms
+export function getForms(): FormTemplate[] {
+  return getItem<FormTemplate[]>(KEYS.forms, [])
+}
+
+export function getFormById(id: string): FormTemplate | undefined {
+  return getForms().find((f) => f.id === id)
+}
+
+export function addForm(name: string, questions: FormQuestion[]): FormTemplate {
+  const forms = getForms()
+  const now = new Date().toISOString()
+  const newForm: FormTemplate = {
+    id: crypto.randomUUID(),
+    name,
+    questions,
+    createdAt: now,
+    updatedAt: now,
+  }
+  forms.push(newForm)
+  setItem(KEYS.forms, forms)
+  return newForm
+}
+
+export function updateForm(id: string, name: string, questions: FormQuestion[]): FormTemplate | null {
+  const forms = getForms()
+  const index = forms.findIndex((f) => f.id === id)
+  if (index === -1) return null
+  forms[index] = {
+    ...forms[index],
+    name,
+    questions,
+    updatedAt: new Date().toISOString(),
+  }
+  setItem(KEYS.forms, forms)
+  return forms[index]
+}
+
+export function deleteForm(id: string): void {
+  const forms = getForms().filter((f) => f.id !== id)
+  setItem(KEYS.forms, forms)
 }

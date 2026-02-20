@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   UserCircle,
+  ClipboardList,
 } from "lucide-react"
 import { clearAdminSession, getAdminName } from "@/lib/store"
 import { useState } from "react"
@@ -22,6 +23,7 @@ import { useState } from "react"
 const NAV_ITEMS = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/feedbacks", label: "Feedbacks", icon: MessageSquare },
+  { href: "/admin/formularios", label: "Formularios", icon: ClipboardList },
   { href: "/admin/logs", label: "Logs de Acesso", icon: FileText },
   { href: "/admin/supervisores", label: "Supervisores", icon: Users },
   { href: "/admin/relatorios", label: "Relatorios", icon: BarChart3 },

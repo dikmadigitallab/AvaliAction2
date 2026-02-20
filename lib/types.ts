@@ -48,3 +48,22 @@ export interface AccessLog {
   timestamp: string
   action: "login" | "evaluation" | "admin_login"
 }
+
+// Forms
+export type QuestionType = "avaliacao" | "texto"
+
+export interface FormQuestion {
+  id: string
+  text: string
+  type: QuestionType
+  maxScore?: number // only for "avaliacao" type
+  tag: string // auto-assigned: "avaliacao" or "texto"
+}
+
+export interface FormTemplate {
+  id: string
+  name: string
+  questions: FormQuestion[]
+  createdAt: string
+  updatedAt: string
+}
