@@ -46,13 +46,13 @@ export default function AdminLoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-      <div className="mb-6 flex flex-col items-center gap-2 animate-fade-in-up sm:mb-8 sm:gap-3">
+      <div className="mb-6 flex flex-col items-center gap-2 animate-fade-in-up sm:mb-8 sm:gap-3 h-10 sm:h-12">
         <Link href="/">
           <Image
-            src="/images/dikma-logo.png"
+            src="https://i.ibb.co/Z61BpdnN/download.png"
             alt="Dikma"
-            width={160}
-            height={53}
+            width={120}
+            height={40}
             className="h-10 w-auto sm:h-12"
             priority
             loading="eager"

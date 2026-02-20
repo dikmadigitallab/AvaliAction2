@@ -2,7 +2,6 @@ import Image from "next/image"
 import { SiteHeader } from "@/components/site-header"
 import { CpfEntrySection } from "@/components/cpf-entry-section"
 import { FeaturesSection } from "@/components/features-section"
-import { Leaf } from "lucide-react"
 
 export default function HomePage() {
   return (
@@ -11,9 +10,16 @@ export default function HomePage() {
 
       {/* Hero */}
       <section className="flex flex-col items-center gap-4 px-4 pt-12 pb-10 text-center sm:pt-16 sm:pb-12">
-        <div className="flex items-center gap-2 animate-fade-in-up">
-          <Leaf className="h-6 w-6 text-primary" />
-          <span className="text-lg font-bold text-foreground tracking-tight sm:text-xl">Dikma</span>
+        <div className="flex items-center gap-2 animate-fade-in-up h-10 sm:h-12">
+          <Image
+            src="https://i.ibb.co/Z61BpdnN/download.png"
+            alt="Dikma"
+            width={120}
+            height={40}
+            className="h-10 w-auto sm:h-12"
+            priority
+            loading="eager"
+          />
         </div>
 
         <h1 className="max-w-2xl text-3xl font-bold tracking-tight text-foreground text-balance sm:text-4xl lg:text-5xl animate-fade-in-up animate-delay-100">

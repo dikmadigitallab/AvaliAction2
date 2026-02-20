@@ -63,12 +63,12 @@ export default function SobrePage() {
         <section className="relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
           <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 pb-8 pt-10 text-center sm:pb-12 sm:pt-16 md:pt-20">
-            <div className="mb-3 animate-fade-in-up sm:mb-4">
+            <div className="mb-3 animate-fade-in-up sm:mb-4 h-10 sm:h-12">
               <Image
-                src="/images/dikma-logo.png"
+                src="https://i.ibb.co/Z61BpdnN/download.png"
                 alt="Dikma"
-                width={160}
-                height={53}
+                width={120}
+                height={40}
                 className="h-10 w-auto animate-float sm:h-12"
                 priority
                 loading="eager"
@@ -220,8 +220,8 @@ export default function SobrePage() {
       {/* Footer */}
       <footer className="border-t border-border bg-card">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-6 text-sm text-muted-foreground md:flex-row">
-          <div className="flex items-center gap-2">
-            <Image src="/images/dikma-logo.png" alt="Dikma" width={80} height={27} className="h-6 w-auto" />
+          <div className="flex items-center gap-2 h-6 sm:h-8">
+            <Image src="https://i.ibb.co/Z61BpdnN/download.png" alt="Dikma" width={80} height={27} className="h-6 w-auto" />
             <span>2026</span>
           </div>
           <div className="flex gap-6">
