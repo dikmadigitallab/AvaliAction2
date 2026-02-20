@@ -57,28 +57,24 @@ export default function EmpresaPage() {
               >
                 <button
                   onClick={() => handleSelectCompany(company)}
-                  className="w-full p-8 flex flex-col items-center justify-center gap-4 text-center"
+                  className="w-full p-8 flex flex-col items-center justify-center gap-6 text-center"
                 >
                   {company.logo ? (
-                    <div className="h-24 sm:h-32 flex items-center justify-center">
-                      <Image
-                        src={company.logo}
-                        alt={company.name}
-                        width={220}
-                        height={140}
-                        className="h-24 sm:h-32 w-auto object-contain"
-                        priority
-                      />
-                    </div>
+                    <Image
+                      src={company.logo}
+                      alt={company.name}
+                      width={300}
+                      height={150}
+                      className="h-32 sm:h-40 w-auto object-contain"
+                      priority
+                      unoptimized
+                    />
                   ) : (
                     <div className="p-4 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
                       <Building2 className="h-8 w-8 text-primary" />
                     </div>
                   )}
                   <div>
-                    <h3 className="text-2xl font-bold text-foreground mb-2 sm:text-3xl">
-                      {company.name}
-                    </h3>
                     <p className="text-sm text-muted-foreground mb-4">
                       Clique para continuar
                     </p>
