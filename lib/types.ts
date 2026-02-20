@@ -37,3 +37,13 @@ export const CRITERIA_LABELS: Record<keyof EvaluationRatings, string> = {
 }
 
 export const CRITERIA_KEYS = Object.keys(CRITERIA_LABELS) as (keyof EvaluationRatings)[]
+
+export interface AccessLog {
+  id: string
+  anonymousId: string
+  maskedCPF: string
+  companyId?: string
+  companyName?: string
+  timestamp: string
+  action: "login" | "evaluation" | "admin_login"
+}

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Lock, ArrowRight } from "lucide-react"
 import { validateCPF, formatCPF, hashCPF } from "@/lib/anonymize"
+import { addAccessLog, maskCPF } from "@/lib/store"
 import { toast } from "sonner"
 
 export function CpfEntrySection() {
@@ -33,6 +34,11 @@ export function CpfEntrySection() {
     try {
       const anonymousId = await hashCPF(cleaned)
       sessionStorage.setItem("anonymous_id", anonymousId)
+      addAccessLog({
+        anonymousId,
+        maskedCPF: maskCPF(cleaned),
+        action: "login",
+      })
       router.push("/evaluate")
     } catch {
       toast.error("Erro ao processar. Tente novamente.")

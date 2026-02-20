@@ -1,6 +1,8 @@
-import type { Company, Supervisor, Evaluation } from "./types"
+import type { Company, Supervisor, Evaluation, AccessLog } from "./types"
 
-const STORE_VERSION = "3"
+const STORE_VERSION = "4"
+
+const ADMIN_CPF = "00000000000"
 
 const COMPANY_LOGOS: Record<string, string> = {
   dikma: "https://i.ibb.co/Z61BpdnN/download.png",
@@ -11,6 +13,7 @@ const KEYS = {
   companies: "eval_companies",
   supervisors: "eval_supervisors",
   evaluations: "eval_evaluations",
+  accessLogs: "eval_access_logs",
   adminHash: "eval_admin_hash",
   initialized: "eval_initialized",
   version: "eval_store_version",
@@ -142,27 +145,21 @@ export function addEvaluation(evaluation: Omit<Evaluation, "id" | "createdAt">):
   return newEval
 }
 
-// Admin
-const ADMIN_PASSWORD = "admin123"
-
-export async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(password + "admin_salt_2026")
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data)
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("")
+// Admin (CPF-based)
+export function verifyAdminCPF(cpf: string): boolean {
+  const cleaned = cpf.replace(/\D/g, "")
+  return cleaned === ADMIN_CPF
 }
 
-export async function verifyAdmin(password: string): Promise<boolean> {
-  const inputHash = await hashPassword(password)
-  const adminHash = await hashPassword(ADMIN_PASSWORD)
-  return inputHash === adminHash
-}
-
-export function setAdminSession(): void {
+export function setAdminSession(name?: string): void {
   if (typeof window === "undefined") return
   sessionStorage.setItem("admin_session", "true")
+  if (name) sessionStorage.setItem("admin_name", name)
+}
+
+export function getAdminName(): string {
+  if (typeof window === "undefined") return "Administrador"
+  return sessionStorage.getItem("admin_name") || "Administrador"
 }
 
 export function isAdminAuthenticated(): boolean {
@@ -173,6 +170,30 @@ export function isAdminAuthenticated(): boolean {
 export function clearAdminSession(): void {
   if (typeof window === "undefined") return
   sessionStorage.removeItem("admin_session")
+  sessionStorage.removeItem("admin_name")
+}
+
+// Access Logs
+export function getAccessLogs(): AccessLog[] {
+  return getItem<AccessLog[]>(KEYS.accessLogs, [])
+}
+
+export function addAccessLog(log: Omit<AccessLog, "id" | "timestamp">): AccessLog {
+  const logs = getAccessLogs()
+  const newLog: AccessLog = {
+    ...log,
+    id: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+  }
+  logs.push(newLog)
+  setItem(KEYS.accessLogs, logs)
+  return newLog
+}
+
+export function maskCPF(cpf: string): string {
+  const cleaned = cpf.replace(/\D/g, "")
+  if (cleaned.length < 11) return "***.***.***-**"
+  return `***.***.***.${cleaned.slice(9, 11)}`
 }
 
 // Export CSV
