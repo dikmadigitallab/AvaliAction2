@@ -60,13 +60,13 @@ export default function EmpresaPage() {
                   className="w-full p-8 flex flex-col items-center justify-center gap-4 text-center"
                 >
                   {company.logo ? (
-                    <div className="h-16 sm:h-20 flex items-center justify-center">
+                    <div className="h-24 sm:h-32 flex items-center justify-center">
                       <Image
                         src={company.logo}
                         alt={company.name}
-                        width={180}
-                        height={80}
-                        className="h-16 sm:h-20 w-auto object-contain"
+                        width={220}
+                        height={140}
+                        className="h-24 sm:h-32 w-auto object-contain"
                         priority
                       />
                     </div>
@@ -76,7 +76,7 @@ export default function EmpresaPage() {
                     </div>
                   )}
                   <div>
-                    <h3 className="text-xl font-semibold text-foreground mb-2">
+                    <h3 className="text-2xl font-bold text-foreground mb-2 sm:text-3xl">
                       {company.name}
                     </h3>
                     <p className="text-sm text-muted-foreground mb-4">
