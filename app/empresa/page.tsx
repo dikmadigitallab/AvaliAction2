@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { initializeStore, getCompanies } from "@/lib/store"
@@ -58,9 +59,22 @@ export default function EmpresaPage() {
                   onClick={() => handleSelectCompany(company)}
                   className="w-full p-8 flex flex-col items-center justify-center gap-4 text-center"
                 >
-                  <div className="p-4 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                    <Building2 className="h-8 w-8 text-primary" />
-                  </div>
+                  {company.logo ? (
+                    <div className="h-16 sm:h-20 flex items-center justify-center">
+                      <Image
+                        src={company.logo}
+                        alt={company.name}
+                        width={180}
+                        height={80}
+                        className="h-16 sm:h-20 w-auto object-contain"
+                        priority
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                      <Building2 className="h-8 w-8 text-primary" />
+                    </div>
+                  )}
                   <div>
                     <h3 className="text-xl font-semibold text-foreground mb-2">
                       {company.name}

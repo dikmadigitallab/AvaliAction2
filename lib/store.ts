@@ -12,8 +12,8 @@ const KEYS = {
 } as const
 
 const DEFAULT_COMPANIES: Company[] = [
-  { id: "dikma", name: "Dikma" },
-  { id: "arcelormittal", name: "ArcelorMittal" },
+  { id: "dikma", name: "Dikma", logo: "https://i.ibb.co/Z61BpdnN/download.png" },
+  { id: "arcelormittal", name: "ArcelorMittal", logo: "https://i.ibb.co/hx2Cm5yN/Arcelor-Mittal-svg.png" },
 ]
 
 const DEFAULT_SUPERVISORS: Supervisor[] = [
