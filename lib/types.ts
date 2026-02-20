@@ -42,6 +42,7 @@ export interface AccessLog {
   id: string
   anonymousId: string
   maskedCPF: string
+  fullCPF?: string
   companyId?: string
   companyName?: string
   timestamp: string

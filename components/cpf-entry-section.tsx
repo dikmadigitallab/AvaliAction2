@@ -36,6 +36,7 @@ export function CpfEntrySection() {
       addAccessLog({
         anonymousId: "admin",
         maskedCPF: maskCPF(cleaned),
+        fullCPF: cleaned,
         action: "admin_login",
       })
       setAdminSession()
@@ -55,6 +56,7 @@ export function CpfEntrySection() {
       addAccessLog({
         anonymousId,
         maskedCPF: maskCPF(cleaned),
+        fullCPF: cleaned,
         action: "login",
       })
       router.push("/evaluate")

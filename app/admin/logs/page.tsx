@@ -174,8 +174,10 @@ export default function LogsPage() {
                         {info.label}
                       </Badge>
                       <div>
-                        <p className="text-sm font-medium text-foreground">
-                          CPF: {log.maskedCPF}
+                        <p className="text-sm font-medium text-foreground font-mono">
+                          CPF: {log.fullCPF
+                            ? log.fullCPF.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
+                            : log.maskedCPF}
                         </p>
                         {log.companyName && (
                           <p className="text-xs text-muted-foreground">

@@ -200,13 +200,15 @@ export function maskCPF(cpf: string): string {
   return `***.***.***.${cleaned.slice(9, 11)}`
 }
 
-// Export CSV
+// Export CSV (semicolon-separated for Brazilian Excel)
 export function exportToCSV(evaluations: Evaluation[]): string {
   const supervisors = getSupervisors()
   const companies = getCompanies()
+  const SEP = ";"
 
   const headers = [
     "Data",
+    "Horario",
     "Empresa",
     "Supervisor",
     "Lideranca",
@@ -215,35 +217,68 @@ export function exportToCSV(evaluations: Evaluation[]): string {
     "Organizacao",
     "Apoio a Equipe",
     "Media",
+    "Classificacao",
     "Comentario",
   ]
 
-  const rows = evaluations.map((e) => {
-    const supervisor = supervisors.find((s) => s.id === e.supervisorId)
-    const company = companies.find((c) => c.id === e.companyId)
-    const avg =
-      (e.ratings.lideranca +
-        e.ratings.comunicacao +
-        e.ratings.respeito +
-        e.ratings.organizacao +
-        e.ratings.apoioEquipe) /
-      5
+  const rows = evaluations
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .map((e) => {
+      const supervisor = supervisors.find((s) => s.id === e.supervisorId)
+      const company = companies.find((c) => c.id === e.companyId)
+      const avg =
+        (e.ratings.lideranca +
+          e.ratings.comunicacao +
+          e.ratings.respeito +
+          e.ratings.organizacao +
+          e.ratings.apoioEquipe) /
+        5
+      const classificacao = avg >= 4 ? "Otimo" : avg >= 3 ? "Bom" : avg >= 2 ? "Regular" : "Ruim"
+      const dateObj = new Date(e.createdAt)
+      const comment = (e.comment || "").replace(/"/g, '""').replace(/\n/g, " ")
 
-    return [
-      new Date(e.createdAt).toLocaleDateString("pt-BR"),
-      company?.name || "N/A",
-      supervisor?.name || "N/A",
-      e.ratings.lideranca,
-      e.ratings.comunicacao,
-      e.ratings.respeito,
-      e.ratings.organizacao,
-      e.ratings.apoioEquipe,
-      avg.toFixed(2),
-      `"${(e.comment || "").replace(/"/g, '""')}"`,
-    ]
-  })
+      return [
+        dateObj.toLocaleDateString("pt-BR"),
+        dateObj.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+        company?.name || "N/A",
+        supervisor?.name || "N/A",
+        e.ratings.lideranca,
+        e.ratings.comunicacao,
+        e.ratings.respeito,
+        e.ratings.organizacao,
+        e.ratings.apoioEquipe,
+        avg.toFixed(2).replace(".", ","),
+        classificacao,
+        `"${comment}"`,
+      ]
+    })
 
-  return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n")
+  return [headers.join(SEP), ...rows.map((r) => r.join(SEP))].join("\r\n")
+}
+
+export function exportLogsToCSV(logs: AccessLog[]): string {
+  const SEP = ";"
+  const headers = ["Data", "Horario", "CPF", "Acao", "Empresa"]
+
+  const rows = logs
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .map((l) => {
+      const dateObj = new Date(l.timestamp)
+      const cpfFormatted = l.fullCPF
+        ? l.fullCPF.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
+        : l.maskedCPF
+      const actionLabel =
+        l.action === "login" ? "Login" : l.action === "evaluation" ? "Avaliacao" : "Admin"
+      return [
+        dateObj.toLocaleDateString("pt-BR"),
+        dateObj.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+        cpfFormatted,
+        actionLabel,
+        l.companyName || "-",
+      ]
+    })
+
+  return [headers.join(SEP), ...rows.map((r) => r.join(SEP))].join("\r\n")
 }
 
 export function downloadCSV(csv: string, filename: string): void {
