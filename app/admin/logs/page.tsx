@@ -19,7 +19,9 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Search, Clock, User, Shield, FileText } from "lucide-react"
+import { Search, Clock, User, Shield, FileText, Download } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { exportLogsToExcel } from "@/lib/excel-export"
 
 const ACTION_MAP: Record<string, { label: string; color: string }> = {
   login: { label: "Login", color: "bg-blue-100 text-blue-800" },
@@ -69,11 +71,17 @@ export default function LogsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Logs de Acesso</h1>
-        <p className="text-muted-foreground mt-1">
-          Historico de acessos e acoes na plataforma.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Logs de Acesso</h1>
+          <p className="text-muted-foreground mt-1">
+            Historico de acessos e acoes na plataforma.
+          </p>
+        </div>
+        <Button variant="outline" className="gap-2" onClick={() => exportLogsToExcel(logs)} disabled={logs.length === 0}>
+          <Download className="h-4 w-4" />
+          Exportar Excel
+        </Button>
       </div>
 
       {/* Stats */}

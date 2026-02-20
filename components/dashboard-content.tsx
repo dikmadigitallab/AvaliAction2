@@ -39,9 +39,8 @@ import {
   getEvaluations,
   getSupervisors,
   getAccessLogs,
-  exportToCSV,
-  downloadCSV,
 } from "@/lib/store"
+import { exportEvaluationsToExcel } from "@/lib/excel-export"
 import type { Company, Supervisor, Evaluation, EvaluationRatings } from "@/lib/types"
 import { CRITERIA_LABELS, CRITERIA_KEYS } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -115,8 +114,7 @@ export function DashboardContent() {
   }, [evaluations])
 
   const handleExport = () => {
-    const csv = exportToCSV(evaluations)
-    downloadCSV(csv, `avaliacoes_${new Date().toISOString().slice(0, 10)}.csv`)
+    exportEvaluationsToExcel(evaluations)
   }
 
   const chartConfigCompany = {
@@ -142,7 +140,7 @@ export function DashboardContent() {
         </div>
         <Button variant="outline" className="gap-2" onClick={handleExport} disabled={evaluations.length === 0}>
           <Download className="h-4 w-4" />
-          Exportar CSV
+          Exportar Excel
         </Button>
       </div>
 

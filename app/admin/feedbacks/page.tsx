@@ -30,9 +30,8 @@ import {
   getCompanies,
   getEvaluations,
   getSupervisors,
-  exportToCSV,
-  downloadCSV,
 } from "@/lib/store"
+import { exportEvaluationsToExcel } from "@/lib/excel-export"
 import type { Company, Supervisor, Evaluation, EvaluationRatings } from "@/lib/types"
 import { CRITERIA_LABELS, CRITERIA_KEYS } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -87,8 +86,7 @@ export default function FeedbacksPage() {
   }, [supervisors, filterCompany])
 
   const handleExport = () => {
-    const csv = exportToCSV(filteredEvals)
-    downloadCSV(csv, `feedbacks_${new Date().toISOString().slice(0, 10)}.csv`)
+    exportEvaluationsToExcel(filteredEvals)
   }
 
   return (
@@ -103,7 +101,7 @@ export default function FeedbacksPage() {
         </div>
         <Button variant="outline" className="gap-2" onClick={handleExport} disabled={filteredEvals.length === 0}>
           <Download className="h-4 w-4" />
-          Exportar
+          Exportar Excel
         </Button>
       </div>
 
