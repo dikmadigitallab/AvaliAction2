@@ -68,7 +68,7 @@ export function CpfEntrySection() {
                 autoComplete="off"
               />
             </div>
-            <Button type="submit" size="lg" disabled={loading} className="gap-2">
+            <Button type="submit" size="lg" disabled={loading} className="gap-2 text-base font-semibold">
               {loading ? "Processando..." : "Iniciar avaliacao"}
               {!loading && <ArrowRight className="h-4 w-4" />}
             </Button>

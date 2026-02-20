@@ -1,9 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { Menu, X } from "lucide-react"
+import { Menu, X, Leaf } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
@@ -23,15 +22,8 @@ export function SiteHeader() {
     <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-3 sm:h-16 sm:px-4">
         <Link href="/" className="flex items-center gap-2">
-          <Image
-            src="/images/dikma-logo.png"
-            alt="Dikma"
-            width={120}
-            height={40}
-            className="h-7 w-auto sm:h-9"
-            priority
-            loading="eager"
-          />
+          <Leaf className="h-5 w-5 text-primary" />
+          <span className="text-base font-bold tracking-tight text-foreground sm:text-lg">Dikma</span>
         </Link>
 
         {/* Desktop nav */}
