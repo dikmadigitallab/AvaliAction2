@@ -127,6 +127,10 @@ export function getEvaluationsByCompany(companyId: string): Evaluation[] {
   return getEvaluations().filter((e) => e.companyId === companyId)
 }
 
+export function getEvaluationsBySupervisor(supervisorId: string): Evaluation[] {
+  return getEvaluations().filter((e) => e.supervisorId === supervisorId)
+}
+
 export function hasEvaluated(anonymousId: string, supervisorId: string): boolean {
   return getEvaluations().some(
     (e) => e.anonymousId === anonymousId && e.supervisorId === supervisorId

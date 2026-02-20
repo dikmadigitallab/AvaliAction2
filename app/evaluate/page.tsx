@@ -11,6 +11,8 @@ import {
   getSupervisorsByCompany,
   hasEvaluated,
   addEvaluation,
+  addAccessLog,
+  maskCPF,
 } from "@/lib/store"
 import { containsProfanity } from "@/lib/profanity"
 import type { Company, EvaluationRatings } from "@/lib/types"
@@ -115,6 +117,13 @@ export default function EvaluatePage() {
         supervisorId: selectedSupervisor.id,
         ratings,
         comment: comment.trim() || undefined,
+      })
+      addAccessLog({
+        anonymousId,
+        maskedCPF: "***.***.***-**",
+        companyId: selectedCompany.id,
+        companyName: selectedCompany.name,
+        action: "evaluation",
       })
       setSubmitting(false)
       setStep("done")
