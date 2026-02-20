@@ -25,13 +25,13 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { MessageSquare, AlertTriangle, Download, Filter } from "lucide-react"
+import { MessageSquare, AlertTriangle, Download, Filter, FileText } from "lucide-react"
 import {
   getCompanies,
   getEvaluations,
   getSupervisors,
 } from "@/lib/store"
-import { exportEvaluationsToExcel } from "@/lib/excel-export"
+import { exportEvaluationsToExcel, exportEvaluationsToPDF } from "@/lib/excel-export"
 import type { Company, Supervisor, Evaluation, EvaluationRatings } from "@/lib/types"
 import { CRITERIA_LABELS, CRITERIA_KEYS } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -99,10 +99,16 @@ export default function FeedbacksPage() {
             Todas as avaliacoes recebidas ({filteredEvals.length} resultado{filteredEvals.length !== 1 ? "s" : ""})
           </p>
         </div>
-        <Button variant="outline" className="gap-2" onClick={handleExport} disabled={filteredEvals.length === 0}>
-          <Download className="h-4 w-4" />
-          Exportar Excel
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={handleExport} disabled={filteredEvals.length === 0}>
+            <Download className="h-4 w-4" />
+            Exportar Excel
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => exportEvaluationsToPDF(filteredEvals)} disabled={filteredEvals.length === 0}>
+            <FileText className="h-4 w-4" />
+            Exportar PDF
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

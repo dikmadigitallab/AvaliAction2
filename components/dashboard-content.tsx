@@ -40,7 +40,7 @@ import {
   getSupervisors,
   getAccessLogs,
 } from "@/lib/store"
-import { exportEvaluationsToExcel } from "@/lib/excel-export"
+import { exportEvaluationsToExcel, exportEvaluationsToPDF } from "@/lib/excel-export"
 import type { Company, Supervisor, Evaluation, EvaluationRatings } from "@/lib/types"
 import { CRITERIA_LABELS, CRITERIA_KEYS } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -138,10 +138,16 @@ export function DashboardContent() {
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
           <p className="text-sm text-muted-foreground">Visao geral das avaliacoes de supervisores</p>
         </div>
-        <Button variant="outline" className="gap-2" onClick={handleExport} disabled={evaluations.length === 0}>
-          <Download className="h-4 w-4" />
-          Exportar Excel
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={handleExport} disabled={evaluations.length === 0}>
+            <Download className="h-4 w-4" />
+            Exportar Excel
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => exportEvaluationsToPDF(evaluations)} disabled={evaluations.length === 0}>
+            <FileText className="h-4 w-4" />
+            Exportar PDF
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}

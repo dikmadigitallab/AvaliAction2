@@ -1,414 +1,455 @@
 import type { Evaluation, AccessLog } from "./types"
-import { CRITERIA_LABELS, CRITERIA_KEYS } from "./types"
 import { getSupervisors, getCompanies } from "./store"
 
-type CellStyle = {
-  font?: { bold?: boolean; color?: string; size?: number }
-  fill?: string
-  alignment?: "left" | "center" | "right"
-  border?: boolean
-  numberFormat?: string
-}
-
-type CellValue = {
-  value: string | number
-  style?: CellStyle
-}
-
-function buildXLSX(
-  sheetName: string,
-  title: string,
-  headers: CellValue[],
-  rows: CellValue[][],
-  colWidths: number[]
-): Blob {
-  // Build an XML-based XLSX (SpreadsheetML) that Excel can open natively
-  // This approach gives us full styling support without any external library
-
-  const escXml = (s: string | number) =>
-    String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-
-  // Style definitions
-  const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <fonts count="4">
-    <font><sz val="11"/><name val="Calibri"/></font>
-    <font><b/><sz val="14"/><color rgb="FF1A1A2E"/><name val="Calibri"/></font>
-    <font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>
-    <font><sz val="11"/><color rgb="FF333333"/><name val="Calibri"/></font>
-  </fonts>
-  <fills count="6">
-    <fill><patternFill patternType="none"/></fill>
-    <fill><patternFill patternType="gray125"/></fill>
-    <fill><patternFill patternType="solid"><fgColor rgb="FF0D9488"/></patternFill></fill>
-    <fill><patternFill patternType="solid"><fgColor rgb="FFF0FDF9"/></patternFill></fill>
-    <fill><patternFill patternType="solid"><fgColor rgb="FFFFFFFF"/></patternFill></fill>
-    <fill><patternFill patternType="solid"><fgColor rgb="FFF8FAFC"/></patternFill></fill>
-  </fills>
-  <borders count="2">
-    <border>
-      <left/><right/><top/><bottom/><diagonal/>
-    </border>
-    <border>
-      <left style="thin"><color rgb="FFD1D5DB"/></left>
-      <right style="thin"><color rgb="FFD1D5DB"/></right>
-      <top style="thin"><color rgb="FFD1D5DB"/></top>
-      <bottom style="thin"><color rgb="FFD1D5DB"/></bottom>
-      <diagonal/>
-    </border>
-  </borders>
-  <cellStyleXfs count="1">
-    <xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>
-  </cellStyleXfs>
-  <cellXfs count="6">
-    <xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>
-    <xf numFmtId="0" fontId="1" fillId="4" borderId="0" applyFont="1" applyFill="1"/>
-    <xf numFmtId="0" fontId="2" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
-    <xf numFmtId="0" fontId="3" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>
-    <xf numFmtId="0" fontId="3" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>
-    <xf numFmtId="0" fontId="3" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
-  </cellXfs>
-</styleSheet>`
-
-  // Column references
-  const colRef = (i: number) => String.fromCharCode(65 + (i % 26))
-  const totalCols = headers.length
-
-  // Build sheet XML
-  let sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-<cols>`
-
-  colWidths.forEach((w, i) => {
-    sheetXml += `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`
-  })
-
-  sheetXml += `</cols><sheetData>`
-
-  // Title row (merged)
-  sheetXml += `<row r="1" ht="30" customHeight="1">
-    <c r="A1" s="1" t="inlineStr"><is><t>${escXml(title)}</t></is></c>
-  </row>`
-
-  // Subtitle row
-  const now = new Date()
-  const subtitle = `Gerado em ${now.toLocaleDateString("pt-BR")} as ${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
-  sheetXml += `<row r="2" ht="20">
-    <c r="A2" s="0" t="inlineStr"><is><t>${escXml(subtitle)}</t></is></c>
-  </row>`
-
-  // Empty row
-  sheetXml += `<row r="3"/>`
-
-  // Header row (row 4)
-  sheetXml += `<row r="4" ht="28" customHeight="1">`
-  headers.forEach((h, i) => {
-    const ref = `${colRef(i)}4`
-    sheetXml += `<c r="${ref}" s="2" t="inlineStr"><is><t>${escXml(h.value)}</t></is></c>`
-  })
-  sheetXml += `</row>`
-
-  // Data rows (starting from row 5)
-  rows.forEach((row, ri) => {
-    const rowNum = ri + 5
-    const isEven = ri % 2 === 0
-    sheetXml += `<row r="${rowNum}" ht="22">`
-    row.forEach((cell, ci) => {
-      const ref = `${colRef(ci)}${rowNum}`
-      const isNumber = typeof cell.value === "number"
-      const styleId = cell.style?.alignment === "center" ? "5" : isEven ? "3" : "4"
-
-      if (isNumber) {
-        sheetXml += `<c r="${ref}" s="${styleId}"><v>${cell.value}</v></c>`
-      } else {
-        sheetXml += `<c r="${ref}" s="${styleId}" t="inlineStr"><is><t>${escXml(cell.value)}</t></is></c>`
-      }
-    })
-    sheetXml += `</row>`
-  })
-
-  // Summary row
-  const summaryRow = rows.length + 5
-  sheetXml += `<row r="${summaryRow}" ht="20">
-    <c r="A${summaryRow}" s="0" t="inlineStr"><is><t>Total de registros: ${rows.length}</t></is></c>
-  </row>`
-
-  sheetXml += `</sheetData>`
-
-  // Merge title cells
-  if (totalCols > 1) {
-    sheetXml += `<mergeCells count="2">
-      <mergeCell ref="A1:${colRef(totalCols - 1)}1"/>
-      <mergeCell ref="A2:${colRef(totalCols - 1)}2"/>
-    </mergeCells>`
-  }
-
-  sheetXml += `</worksheet>`
-
-  // Build the XLSX zip manually using the minimum required structure
-  // XLSX is a ZIP containing XML files
-  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
-  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
-  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
-</Types>`
-
-  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
-</Relationships>`
-
-  const workbook = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <sheets>
-    <sheet name="${escXml(sheetName)}" sheetId="1" r:id="rId1"/>
-  </sheets>
-</workbook>`
-
-  const wbRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
-  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
-</Relationships>`
-
-  // Use JSZip-like manual ZIP creation
-  // Since we can't import external libs easily, we'll use the simpler approach
-  // of creating an HTML table that Excel can open with full formatting
-  // This is the most reliable cross-platform approach
-
-  // Actually, let's use an Excel-compatible HTML format that supports full styling
-  const htmlExcel = buildExcelHTML(title, subtitle, headers, rows, colWidths)
-  return new Blob(["\ufeff" + htmlExcel], {
-    type: "application/vnd.ms-excel;charset=utf-8",
-  })
-}
-
-function buildExcelHTML(
-  title: string,
-  subtitle: string,
-  headers: CellValue[],
-  rows: CellValue[][],
-  colWidths: number[]
-): string {
-  const totalCols = headers.length
-
-  let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-<meta charset="utf-8">
-<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
-<x:Name>Relatorio</x:Name>
-<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
-</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
-<style>
-  body { font-family: Calibri, Arial, sans-serif; }
-  table { border-collapse: collapse; width: 100%; }
-  .title { font-size: 18pt; font-weight: bold; color: #1a1a2e; padding: 12px 8px; }
-  .subtitle { font-size: 10pt; color: #64748b; padding: 4px 8px 12px; }
-  .header { background-color: #0d9488; color: #ffffff; font-weight: bold; font-size: 10pt; padding: 10px 8px; border: 1px solid #0d9488; text-align: center; }
-  .cell { font-size: 10pt; color: #333333; padding: 8px; border: 1px solid #e2e8f0; vertical-align: middle; }
-  .cell-alt { font-size: 10pt; color: #333333; padding: 8px; border: 1px solid #e2e8f0; vertical-align: middle; background-color: #f8fafc; }
-  .cell-center { text-align: center; }
-  .cell-number { text-align: center; font-weight: 600; }
-  .cell-high { text-align: center; font-weight: 600; color: #059669; background-color: #ecfdf5; }
-  .cell-medium { text-align: center; font-weight: 600; color: #d97706; background-color: #fffbeb; }
-  .cell-low { text-align: center; font-weight: 600; color: #dc2626; background-color: #fef2f2; }
-  .summary { font-size: 9pt; color: #94a3b8; padding: 10px 8px; font-style: italic; }
-</style>
-</head>
-<body>
-<table>`
-
-  // Title row
-  html += `<tr><td colspan="${totalCols}" class="title">${escHtml(title)}</td></tr>`
-  html += `<tr><td colspan="${totalCols}" class="subtitle">${escHtml(subtitle)}</td></tr>`
-  html += `<tr><td colspan="${totalCols}" style="height:8px"></td></tr>`
-
-  // Header row
-  html += `<tr>`
-  headers.forEach((h, i) => {
-    html += `<td class="header" style="min-width:${colWidths[i] * 8}px">${escHtml(String(h.value))}</td>`
-  })
-  html += `</tr>`
-
-  // Data rows
-  rows.forEach((row, ri) => {
-    const isAlt = ri % 2 !== 0
-    html += `<tr>`
-    row.forEach((cell) => {
-      const baseClass = isAlt ? "cell-alt" : "cell"
-      let cls = baseClass
-
-      if (cell.style?.alignment === "center") {
-        if (typeof cell.value === "number") {
-          const v = cell.value
-          if (v >= 4) cls += " cell-high"
-          else if (v >= 3) cls += " cell-medium"
-          else if (v > 0) cls += " cell-low"
-          else cls += " cell-center"
-        } else {
-          cls += " cell-center"
-        }
-      }
-
-      if (cell.style?.font?.color === "green") cls = baseClass + " cell-high"
-      if (cell.style?.font?.color === "amber") cls = baseClass + " cell-medium"
-      if (cell.style?.font?.color === "red") cls = baseClass + " cell-low"
-
-      html += `<td class="${cls}">${escHtml(String(cell.value))}</td>`
-    })
-    html += `</tr>`
-  })
-
-  // Summary
-  const now = new Date()
-  html += `<tr><td colspan="${totalCols}" style="height:8px"></td></tr>`
-  html += `<tr><td colspan="${totalCols}" class="summary">Total: ${rows.length} registro(s) | Exportado em ${now.toLocaleDateString("pt-BR")} as ${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</td></tr>`
-
-  html += `</table></body></html>`
-  return html
-}
-
 function escHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
 }
 
-// ==========================================
-// PUBLIC EXPORT FUNCTIONS
-// ==========================================
+function ratingColor(v: number): { bg: string; text: string; label: string } {
+  if (v >= 4) return { bg: "#ecfdf5", text: "#059669", label: "Otimo" }
+  if (v >= 3) return { bg: "#fffbeb", text: "#d97706", label: "Bom" }
+  if (v >= 2) return { bg: "#fff7ed", text: "#ea580c", label: "Regular" }
+  return { bg: "#fef2f2", text: "#dc2626", label: "Ruim" }
+}
 
-export function exportEvaluationsToExcel(evaluations: Evaluation[]): void {
+function buildEvalData(evaluations: Evaluation[]) {
   const supervisors = getSupervisors()
   const companies = getCompanies()
-
-  const headers: CellValue[] = [
-    { value: "Data" },
-    { value: "Horario" },
-    { value: "Empresa" },
-    { value: "Supervisor" },
-    { value: "Lideranca" },
-    { value: "Comunicacao" },
-    { value: "Respeito" },
-    { value: "Organizacao" },
-    { value: "Apoio a Equipe" },
-    { value: "Media" },
-    { value: "Classificacao" },
-    { value: "Comentario" },
-  ]
-
-  const colWidths = [14, 10, 18, 18, 12, 14, 12, 14, 16, 10, 14, 40]
-
-  const rows: CellValue[][] = evaluations
+  return evaluations
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .map((e) => {
       const supervisor = supervisors.find((s) => s.id === e.supervisorId)
       const company = companies.find((c) => c.id === e.companyId)
-      const avg =
-        (e.ratings.lideranca +
-          e.ratings.comunicacao +
-          e.ratings.respeito +
-          e.ratings.organizacao +
-          e.ratings.apoioEquipe) /
-        5
-      const classificacao = avg >= 4 ? "Otimo" : avg >= 3 ? "Bom" : avg >= 2 ? "Regular" : "Ruim"
+      const avg = (e.ratings.lideranca + e.ratings.comunicacao + e.ratings.respeito + e.ratings.organizacao + e.ratings.apoioEquipe) / 5
       const dateObj = new Date(e.createdAt)
-
-      const ratingStyle = (v: number): CellStyle => ({
-        alignment: "center",
-        font: {
-          color: v >= 4 ? "green" : v >= 3 ? "amber" : "red",
-        },
-      })
-
-      return [
-        { value: dateObj.toLocaleDateString("pt-BR") },
-        { value: dateObj.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }), style: { alignment: "center" } },
-        { value: company?.name || "N/A" },
-        { value: supervisor?.name || "N/A" },
-        { value: e.ratings.lideranca, style: ratingStyle(e.ratings.lideranca) },
-        { value: e.ratings.comunicacao, style: ratingStyle(e.ratings.comunicacao) },
-        { value: e.ratings.respeito, style: ratingStyle(e.ratings.respeito) },
-        { value: e.ratings.organizacao, style: ratingStyle(e.ratings.organizacao) },
-        { value: e.ratings.apoioEquipe, style: ratingStyle(e.ratings.apoioEquipe) },
-        { value: Number(avg.toFixed(1)), style: ratingStyle(avg) },
-        {
-          value: classificacao,
-          style: {
-            alignment: "center",
-            font: { color: avg >= 4 ? "green" : avg >= 3 ? "amber" : "red" },
-          },
-        },
-        { value: e.comment || "-" },
-      ]
+      return {
+        data: dateObj.toLocaleDateString("pt-BR"),
+        horario: dateObj.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+        empresa: company?.name || "N/A",
+        supervisor: supervisor?.name || "N/A",
+        lideranca: e.ratings.lideranca,
+        comunicacao: e.ratings.comunicacao,
+        respeito: e.ratings.respeito,
+        organizacao: e.ratings.organizacao,
+        apoio: e.ratings.apoioEquipe,
+        media: Number(avg.toFixed(1)),
+        classificacao: ratingColor(avg).label,
+        comentario: e.comment || "-",
+      }
     })
-
-  const blob = buildXLSX(
-    "Avaliacoes",
-    "Relatorio de Avaliacoes - Plataforma Dikma",
-    headers,
-    rows,
-    colWidths
-  )
-
-  downloadExcel(blob, `avaliacoes_${new Date().toISOString().slice(0, 10)}.xls`)
 }
+
+// ==========================================
+// EXCEL EXPORT
+// ==========================================
+
+export function exportEvaluationsToExcel(evaluations: Evaluation[]): void {
+  const rows = buildEvalData(evaluations)
+  const now = new Date()
+
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<!--[if gte mso 9]><xml>
+<x:ExcelWorkbook>
+<x:ExcelWorksheets>
+<x:ExcelWorksheet><x:Name>Relatorio de Avaliacoes</x:Name><x:WorksheetOptions><x:FreezePanes/><x:FrozenNoSplit/><x:SplitHorizontal>4</x:SplitHorizontal><x:TopRowBottomPane>4</x:TopRowBottomPane><x:ActivePane>2</x:ActivePane></x:WorksheetOptions></x:ExcelWorksheet>
+<x:ExcelWorksheet><x:Name>Resumo</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet>
+</x:ExcelWorksheets>
+</x:ExcelWorkbook>
+</xml><![endif]-->
+<style>
+  @page { margin: 0.5in; }
+  body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; }
+  table { border-collapse: collapse; width: 100%; }
+  td, th { padding: 6px 10px; }
+  .title-row td { font-size: 16pt; font-weight: bold; color: #0f172a; padding: 14px 10px 4px; border: none; }
+  .subtitle-row td { font-size: 9pt; color: #64748b; padding: 2px 10px 14px; border: none; }
+  .hdr { background: #0d9488; color: #ffffff; font-weight: bold; font-size: 10pt; text-align: center; border: 1px solid #0d9488; padding: 10px 8px; }
+  .c { border: 1px solid #e2e8f0; vertical-align: middle; font-size: 10pt; color: #1e293b; }
+  .ca { text-align: center; }
+  .w0 { background: #ffffff; }
+  .w1 { background: #f8fafc; }
+  .hi { font-weight: 600; color: #059669; background: #ecfdf5; text-align: center; }
+  .md { font-weight: 600; color: #d97706; background: #fffbeb; text-align: center; }
+  .lo { font-weight: 600; color: #dc2626; background: #fef2f2; text-align: center; }
+  .rg { font-weight: 600; color: #ea580c; background: #fff7ed; text-align: center; }
+  .wrap { word-wrap: break-word; max-width: 300px; }
+  .sep td { height: 6px; border: none; }
+  .foot td { font-size: 8pt; color: #94a3b8; font-style: italic; padding: 12px 10px 4px; border: none; }
+  .conf td { font-size: 8pt; color: #cbd5e1; padding: 2px 10px; border: none; }
+  .sum-title td { font-size: 14pt; font-weight: bold; color: #0f172a; padding: 14px 10px 4px; border: none; }
+  .sum-sub td { font-size: 9pt; color: #64748b; padding: 2px 10px 14px; border: none; }
+  .sum-hdr { background: #1e293b; color: #ffffff; font-weight: bold; font-size: 10pt; text-align: center; border: 1px solid #1e293b; padding: 8px; }
+  .sum-c { border: 1px solid #e2e8f0; padding: 6px 10px; font-size: 10pt; }
+  .sum-w0 { background: #ffffff; }
+  .sum-w1 { background: #f1f5f9; }
+  .sum-bold { font-weight: 700; }
+</style>
+</head>
+<body>
+
+<table>
+  <tr class="title-row"><td colspan="12">Relatorio de Avaliacoes de Supervisores</td></tr>
+  <tr class="subtitle-row"><td colspan="12">Plataforma Dikma | Gerado em ${now.toLocaleDateString("pt-BR")} as ${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</td></tr>
+  <tr class="sep"><td colspan="12"></td></tr>
+  <tr>
+    <td class="hdr" style="min-width:80px">Data</td>
+    <td class="hdr" style="min-width:60px">Horario</td>
+    <td class="hdr" style="min-width:120px">Empresa</td>
+    <td class="hdr" style="min-width:120px">Supervisor</td>
+    <td class="hdr" style="min-width:80px">Lideranca</td>
+    <td class="hdr" style="min-width:90px">Comunicacao</td>
+    <td class="hdr" style="min-width:80px">Respeito</td>
+    <td class="hdr" style="min-width:90px">Organizacao</td>
+    <td class="hdr" style="min-width:100px">Apoio a Equipe</td>
+    <td class="hdr" style="min-width:60px">Media</td>
+    <td class="hdr" style="min-width:90px">Classificacao</td>
+    <td class="hdr" style="min-width:250px">Comentario</td>
+  </tr>
+${rows.map((r, i) => {
+  const z = i % 2 === 0 ? "w0" : "w1"
+  const rc = (v: number) => v >= 4 ? "hi" : v >= 3 ? "md" : v >= 2 ? "rg" : "lo"
+  const mc = ratingColor(r.media)
+  return `  <tr>
+    <td class="c ${z} ca">${escHtml(r.data)}</td>
+    <td class="c ${z} ca">${escHtml(r.horario)}</td>
+    <td class="c ${z}">${escHtml(r.empresa)}</td>
+    <td class="c ${z}">${escHtml(r.supervisor)}</td>
+    <td class="c ${rc(r.lideranca)}">${r.lideranca}</td>
+    <td class="c ${rc(r.comunicacao)}">${r.comunicacao}</td>
+    <td class="c ${rc(r.respeito)}">${r.respeito}</td>
+    <td class="c ${rc(r.organizacao)}">${r.organizacao}</td>
+    <td class="c ${rc(r.apoio)}">${r.apoio}</td>
+    <td class="c ${rc(r.media)}" style="font-weight:700">${r.media}</td>
+    <td class="c ${z} ca" style="color:${mc.text};font-weight:600">${escHtml(r.classificacao)}</td>
+    <td class="c ${z} wrap">${escHtml(r.comentario)}</td>
+  </tr>`
+}).join("\n")}
+  <tr class="sep"><td colspan="12"></td></tr>
+  <tr class="foot"><td colspan="12">Total de avaliacoes: ${rows.length} | Exportado em ${now.toLocaleDateString("pt-BR")} as ${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</td></tr>
+  <tr class="conf"><td colspan="12">Documento confidencial - uso interno</td></tr>
+</table>
+
+${buildSummarySheet(rows)}
+
+</body></html>`
+
+  downloadFile(
+    new Blob(["\ufeff" + html], { type: "application/vnd.ms-excel;charset=utf-8" }),
+    `avaliacoes_${now.toISOString().slice(0, 10)}.xls`
+  )
+}
+
+function buildSummarySheet(rows: ReturnType<typeof buildEvalData>): string {
+  // Summary by supervisor
+  const bySupervisor: Record<string, { name: string; empresa: string; total: number; sum: number }> = {}
+  rows.forEach((r) => {
+    const key = `${r.supervisor}_${r.empresa}`
+    if (!bySupervisor[key]) bySupervisor[key] = { name: r.supervisor, empresa: r.empresa, total: 0, sum: 0 }
+    bySupervisor[key].total++
+    bySupervisor[key].sum += r.media
+  })
+  const supervisorRows = Object.values(bySupervisor).sort((a, b) => (b.sum / b.total) - (a.sum / a.total))
+
+  // Summary by company
+  const byCompany: Record<string, { name: string; total: number; sum: number }> = {}
+  rows.forEach((r) => {
+    if (!byCompany[r.empresa]) byCompany[r.empresa] = { name: r.empresa, total: 0, sum: 0 }
+    byCompany[r.empresa].total++
+    byCompany[r.empresa].sum += r.media
+  })
+  const companyRows = Object.values(byCompany)
+
+  // Overall
+  const totalEvals = rows.length
+  const overallAvg = totalEvals > 0 ? (rows.reduce((s, r) => s + r.media, 0) / totalEvals).toFixed(1) : "0"
+
+  return `
+<br><br>
+<table>
+  <tr class="sum-title"><td colspan="4">Resumo Geral</td></tr>
+  <tr class="sum-sub"><td colspan="4">Visao consolidada das avaliacoes</td></tr>
+  <tr class="sep"><td colspan="4"></td></tr>
+  <tr>
+    <td class="sum-c sum-w1 sum-bold" style="border:1px solid #e2e8f0">Total de Avaliacoes</td>
+    <td class="sum-c sum-w0" style="border:1px solid #e2e8f0;font-size:14pt;font-weight:700;text-align:center" colspan="3">${totalEvals}</td>
+  </tr>
+  <tr>
+    <td class="sum-c sum-w1 sum-bold" style="border:1px solid #e2e8f0">Media Geral</td>
+    <td class="sum-c sum-w0" style="border:1px solid #e2e8f0;font-size:14pt;font-weight:700;text-align:center;color:#0d9488" colspan="3">${overallAvg}</td>
+  </tr>
+  <tr class="sep"><td colspan="4"></td></tr>
+  <tr class="sep"><td colspan="4"></td></tr>
+
+  <tr><td colspan="4" style="font-size:12pt;font-weight:bold;color:#0f172a;padding:10px 10px 6px;border:none">Media por Empresa</td></tr>
+  <tr>
+    <td class="sum-hdr">Empresa</td>
+    <td class="sum-hdr">Avaliacoes</td>
+    <td class="sum-hdr" colspan="2">Media</td>
+  </tr>
+${companyRows.map((c, i) => {
+  const z = i % 2 === 0 ? "sum-w0" : "sum-w1"
+  const avg = (c.sum / c.total).toFixed(1)
+  return `  <tr>
+    <td class="sum-c ${z}" style="font-weight:600">${escHtml(c.name)}</td>
+    <td class="sum-c ${z}" style="text-align:center">${c.total}</td>
+    <td class="sum-c ${z}" style="text-align:center;font-weight:700;color:#0d9488" colspan="2">${avg}</td>
+  </tr>`
+}).join("\n")}
+
+  <tr class="sep"><td colspan="4"></td></tr>
+  <tr class="sep"><td colspan="4"></td></tr>
+  <tr><td colspan="4" style="font-size:12pt;font-weight:bold;color:#0f172a;padding:10px 10px 6px;border:none">Media por Supervisor</td></tr>
+  <tr>
+    <td class="sum-hdr">Supervisor</td>
+    <td class="sum-hdr">Empresa</td>
+    <td class="sum-hdr">Avaliacoes</td>
+    <td class="sum-hdr">Media</td>
+  </tr>
+${supervisorRows.map((s, i) => {
+  const z = i % 2 === 0 ? "sum-w0" : "sum-w1"
+  const avg = (s.sum / s.total).toFixed(1)
+  const rc = ratingColor(Number(avg))
+  return `  <tr>
+    <td class="sum-c ${z}" style="font-weight:600">${escHtml(s.name)}</td>
+    <td class="sum-c ${z}">${escHtml(s.empresa)}</td>
+    <td class="sum-c ${z}" style="text-align:center">${s.total}</td>
+    <td class="sum-c ${z}" style="text-align:center;font-weight:700;color:${rc.text}">${avg}</td>
+  </tr>`
+}).join("\n")}
+  <tr class="sep"><td colspan="4"></td></tr>
+  <tr class="conf"><td colspan="4">Documento confidencial - uso interno</td></tr>
+</table>`
+}
+
+// ==========================================
+// LOGS EXCEL EXPORT
+// ==========================================
 
 export function exportLogsToExcel(logs: AccessLog[]): void {
-  const headers: CellValue[] = [
-    { value: "Data" },
-    { value: "Horario" },
-    { value: "CPF" },
-    { value: "Tipo de Acao" },
-    { value: "Empresa" },
-  ]
+  const now = new Date()
+  const sortedLogs = [...logs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
-  const colWidths = [14, 10, 20, 16, 20]
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<!--[if gte mso 9]><xml>
+<x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
+<x:Name>Logs de Acesso</x:Name>
+<x:WorksheetOptions><x:FreezePanes/><x:FrozenNoSplit/><x:SplitHorizontal>4</x:SplitHorizontal><x:TopRowBottomPane>4</x:TopRowBottomPane><x:ActivePane>2</x:ActivePane></x:WorksheetOptions>
+</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook>
+</xml><![endif]-->
+<style>
+  body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; }
+  table { border-collapse: collapse; width: 100%; }
+  td { padding: 6px 10px; }
+  .title-row td { font-size: 16pt; font-weight: bold; color: #0f172a; padding: 14px 10px 4px; border: none; }
+  .subtitle-row td { font-size: 9pt; color: #64748b; padding: 2px 10px 14px; border: none; }
+  .hdr { background: #1e293b; color: #ffffff; font-weight: bold; font-size: 10pt; text-align: center; border: 1px solid #1e293b; padding: 10px 8px; }
+  .c { border: 1px solid #e2e8f0; vertical-align: middle; font-size: 10pt; color: #1e293b; }
+  .ca { text-align: center; }
+  .w0 { background: #ffffff; }
+  .w1 { background: #f8fafc; }
+  .sep td { height: 6px; border: none; }
+  .foot td { font-size: 8pt; color: #94a3b8; font-style: italic; padding: 12px 10px; border: none; }
+  .login-badge { color: #0369a1; font-weight: 600; }
+  .eval-badge { color: #059669; font-weight: 600; }
+  .admin-badge { color: #d97706; font-weight: 600; }
+</style>
+</head>
+<body>
+<table>
+  <tr class="title-row"><td colspan="5">Logs de Acesso - Plataforma Dikma</td></tr>
+  <tr class="subtitle-row"><td colspan="5">Gerado em ${now.toLocaleDateString("pt-BR")} as ${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</td></tr>
+  <tr class="sep"><td colspan="5"></td></tr>
+  <tr>
+    <td class="hdr" style="min-width:80px">Data</td>
+    <td class="hdr" style="min-width:60px">Horario</td>
+    <td class="hdr" style="min-width:120px">CPF</td>
+    <td class="hdr" style="min-width:100px">Tipo de Acao</td>
+    <td class="hdr" style="min-width:120px">Empresa</td>
+  </tr>
+${sortedLogs.map((l, i) => {
+  const z = i % 2 === 0 ? "w0" : "w1"
+  const dateObj = new Date(l.timestamp)
+  const cpf = l.fullCPF ? l.fullCPF.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : l.maskedCPF
+  const actionLabel = l.action === "login" ? "Login" : l.action === "evaluation" ? "Avaliacao" : "Admin"
+  const badge = l.action === "login" ? "login-badge" : l.action === "evaluation" ? "eval-badge" : "admin-badge"
+  return `  <tr>
+    <td class="c ${z} ca">${dateObj.toLocaleDateString("pt-BR")}</td>
+    <td class="c ${z} ca">${dateObj.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</td>
+    <td class="c ${z}" style="font-family:Consolas,monospace">${escHtml(cpf)}</td>
+    <td class="c ${z} ca ${badge}">${escHtml(actionLabel)}</td>
+    <td class="c ${z}">${escHtml(l.companyName || "-")}</td>
+  </tr>`
+}).join("\n")}
+  <tr class="sep"><td colspan="5"></td></tr>
+  <tr class="foot"><td colspan="5">Total: ${sortedLogs.length} registro(s) | Documento confidencial - uso interno</td></tr>
+</table>
+</body></html>`
 
-  const rows: CellValue[][] = logs
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .map((l) => {
-      const dateObj = new Date(l.timestamp)
-      const cpfFormatted = l.fullCPF
-        ? l.fullCPF.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
-        : l.maskedCPF
-      const actionLabel =
-        l.action === "login" ? "Login" : l.action === "evaluation" ? "Avaliacao" : "Admin"
-
-      return [
-        { value: dateObj.toLocaleDateString("pt-BR") },
-        { value: dateObj.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }), style: { alignment: "center" } },
-        { value: cpfFormatted },
-        {
-          value: actionLabel,
-          style: {
-            alignment: "center",
-            font: {
-              color: l.action === "evaluation" ? "green" : l.action === "admin_login" ? "amber" : undefined,
-            },
-          },
-        },
-        { value: l.companyName || "-" },
-      ]
-    })
-
-  const blob = buildXLSX(
-    "Logs",
-    "Logs de Acesso - Plataforma Dikma",
-    headers,
-    rows,
-    colWidths
+  downloadFile(
+    new Blob(["\ufeff" + html], { type: "application/vnd.ms-excel;charset=utf-8" }),
+    `logs_acesso_${now.toISOString().slice(0, 10)}.xls`
   )
-
-  downloadExcel(blob, `logs_${new Date().toISOString().slice(0, 10)}.xls`)
 }
 
-function downloadExcel(blob: Blob, filename: string): void {
+// ==========================================
+// PDF EXPORT
+// ==========================================
+
+export function exportEvaluationsToPDF(evaluations: Evaluation[]): void {
+  const rows = buildEvalData(evaluations)
+  const now = new Date()
+
+  // Overall stats
+  const totalEvals = rows.length
+  const overallAvg = totalEvals > 0 ? (rows.reduce((s, r) => s + r.media, 0) / totalEvals).toFixed(1) : "0"
+
+  // By company
+  const byCompany: Record<string, { name: string; total: number; sum: number }> = {}
+  rows.forEach((r) => {
+    if (!byCompany[r.empresa]) byCompany[r.empresa] = { name: r.empresa, total: 0, sum: 0 }
+    byCompany[r.empresa].total++
+    byCompany[r.empresa].sum += r.media
+  })
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Relatorio de Avaliacoes</title>
+<style>
+  @page { size: A4 landscape; margin: 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; color: #1e293b; font-size: 10pt; background: #fff; }
+
+  .header { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 12px; border-bottom: 3px solid #0d9488; margin-bottom: 20px; }
+  .header-left h1 { font-size: 18pt; color: #0f172a; font-weight: 700; margin-bottom: 2px; }
+  .header-left p { font-size: 9pt; color: #64748b; }
+  .header-right { text-align: right; font-size: 9pt; color: #64748b; }
+  .header-right .date { font-size: 10pt; color: #0f172a; font-weight: 600; }
+
+  .section-title { font-size: 12pt; font-weight: 700; color: #0f172a; margin: 20px 0 8px; padding-bottom: 4px; border-bottom: 1px solid #e2e8f0; }
+
+  .stats { display: flex; gap: 16px; margin-bottom: 20px; }
+  .stat-card { flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px 16px; }
+  .stat-card .label { font-size: 8pt; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-card .value { font-size: 20pt; font-weight: 700; color: #0d9488; margin-top: 2px; }
+  .stat-card .value.dark { color: #0f172a; }
+
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 9pt; }
+  th { background: #0d9488; color: #fff; font-weight: 600; padding: 8px 6px; text-align: center; border: 1px solid #0d9488; }
+  td { padding: 6px; border: 1px solid #e2e8f0; vertical-align: middle; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  .num { text-align: center; font-weight: 600; }
+  .num-hi { text-align: center; font-weight: 600; color: #059669; }
+  .num-md { text-align: center; font-weight: 600; color: #d97706; }
+  .num-lo { text-align: center; font-weight: 600; color: #dc2626; }
+  .num-rg { text-align: center; font-weight: 600; color: #ea580c; }
+  .comment { max-width: 220px; word-wrap: break-word; font-size: 8pt; color: #475569; }
+  .avg-cell { font-weight: 700; font-size: 10pt; }
+
+  .footer { margin-top: 24px; padding-top: 8px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; font-size: 8pt; color: #94a3b8; }
+
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Relatorio de Avaliacao de Supervisores</h1>
+    <p>Plataforma Dikma</p>
+  </div>
+  <div class="header-right">
+    <div class="date">${now.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}</div>
+    <div>${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div>
+  </div>
+</div>
+
+<div class="section-title">1. Resumo Geral</div>
+<div class="stats">
+  <div class="stat-card">
+    <div class="label">Total de Avaliacoes</div>
+    <div class="value dark">${totalEvals}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Media Geral</div>
+    <div class="value">${overallAvg}</div>
+  </div>
+${Object.values(byCompany).map((c) => `  <div class="stat-card">
+    <div class="label">${escHtml(c.name)}</div>
+    <div class="value">${(c.sum / c.total).toFixed(1)}</div>
+  </div>`).join("\n")}
+</div>
+
+<div class="section-title">2. Avaliacoes Detalhadas</div>
+<table>
+  <thead>
+    <tr>
+      <th>Data</th>
+      <th>Empresa</th>
+      <th>Supervisor</th>
+      <th>Lideranca</th>
+      <th>Comunicacao</th>
+      <th>Respeito</th>
+      <th>Organizacao</th>
+      <th>Apoio</th>
+      <th>Media</th>
+      <th>Class.</th>
+      <th>Comentario</th>
+    </tr>
+  </thead>
+  <tbody>
+${rows.map((r) => {
+  const nc = (v: number) => v >= 4 ? "num-hi" : v >= 3 ? "num-md" : v >= 2 ? "num-rg" : "num-lo"
+  const mc = ratingColor(r.media)
+  return `    <tr>
+      <td class="num">${escHtml(r.data)}</td>
+      <td>${escHtml(r.empresa)}</td>
+      <td style="font-weight:600">${escHtml(r.supervisor)}</td>
+      <td class="${nc(r.lideranca)}">${r.lideranca}</td>
+      <td class="${nc(r.comunicacao)}">${r.comunicacao}</td>
+      <td class="${nc(r.respeito)}">${r.respeito}</td>
+      <td class="${nc(r.organizacao)}">${r.organizacao}</td>
+      <td class="${nc(r.apoio)}">${r.apoio}</td>
+      <td class="${nc(r.media)} avg-cell">${r.media}</td>
+      <td class="num" style="color:${mc.text}">${escHtml(r.classificacao)}</td>
+      <td class="comment">${escHtml(r.comentario)}</td>
+    </tr>`
+}).join("\n")}
+  </tbody>
+</table>
+
+<div class="footer">
+  <span>Documento confidencial - uso interno</span>
+  <span>Gerado automaticamente pela Plataforma Dikma | ${now.toLocaleDateString("pt-BR")}</span>
+</div>
+
+</body>
+</html>`
+
+  // Open in new window for printing as PDF
+  const printWindow = window.open("", "_blank")
+  if (printWindow) {
+    printWindow.document.write(html)
+    printWindow.document.close()
+    setTimeout(() => {
+      printWindow.print()
+    }, 500)
+  }
+}
+
+// ==========================================
+// UTILITY
+// ==========================================
+
+function downloadFile(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")
   a.href = url
