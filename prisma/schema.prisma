@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Company {
+  id          String       @id @default(uuid())
+  name        String
+  logo        String?
+  supervisors Supervisor[]
+  evaluations Evaluation[]
+}
+
+model Supervisor {
+  id          String       @id @default(uuid())
+  name        String
+  companyId   String
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  evaluations Evaluation[]
+}
+
+model Evaluation {
+  id           String     @id @default(uuid())
+  supervisorId String
+  companyId    String
+  anonymousId  String
+  lideranca    Int
+  comunicacao  Int
+  respeito     Int
+  organizacao  Int
+  apoioEquipe  Int
+  comment      String?
+  createdAt    DateTime   @default(now())
+  supervisor   Supervisor @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
+  company      Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model AccessLog {
+  id          String   @id @default(uuid())
+  anonymousId String
+  maskedCPF   String
+  fullCPF     String?
+  companyId   String?
+  companyName String?
+  action      String
+  timestamp   DateTime @default(now())
+}
+
+model FormTemplate {
+  id        String         @id @default(uuid())
+  name      String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  questions FormQuestion[]
+}
+
+model FormQuestion {
+  id       String       @id @default(uuid())
+  text     String
+  type     String
+  maxScore Int?
+  tag      String
+  order    Int          @default(0)
+  formId   String
+  form     FormTemplate @relation(fields: [formId], references: [id], onDelete: Cascade)
+}
