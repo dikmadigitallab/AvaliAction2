@@ -1,18 +1,10 @@
 import type { Metadata, Viewport } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
-import { Toaster } from "@/components/ui/toaster"
+
 import "./globals.css"
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-})
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-})
+
+
 
 export const metadata: Metadata = {
   title: "Dikma | Avaliacao Anonima de Supervisores",
@@ -40,11 +32,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html>
       <body className="font-sans antialiased" suppressHydrationWarning>
         <main>{children}</main>
-        <Toaster richColors position="top-center" />
-        <Analytics />
+
       </body>
     </html>
   )
