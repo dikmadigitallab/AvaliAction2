@@ -1,4 +1,4 @@
-import type { Company, Supervisor, Evaluation, AccessLog, FormTemplate, FormQuestion } from "./types"
+import type { Company, Supervisor, Evaluation, AccessLog, FormTemplate, FormQuestion, FormResponse, FormAnswer } from "./types"
 
 const STORE_VERSION = "4"
 
@@ -18,6 +18,7 @@ const KEYS = {
   initialized: "eval_initialized",
   version: "eval_store_version",
   forms: "eval_forms",
+  formResponses: "eval_form_responses",
 } as const
 
 const DEFAULT_COMPANIES: Company[] = [
@@ -242,4 +243,42 @@ export function updateForm(id: string, name: string, questions: FormQuestion[]):
 export function deleteForm(id: string): void {
   const forms = getForms().filter((f) => f.id !== id)
   setItem(KEYS.forms, forms)
+  // Also remove responses for this form
+  const responses = getFormResponses().filter((r) => r.formId !== id)
+  setItem(KEYS.formResponses, responses)
+}
+
+// Form Responses
+export function getFormResponses(): FormResponse[] {
+  return getItem<FormResponse[]>(KEYS.formResponses, [])
+}
+
+export function getFormResponsesByFormId(formId: string): FormResponse[] {
+  return getFormResponses().filter((r) => r.formId === formId)
+}
+
+export function hasRespondedToForm(formId: string, cpfHash: string): boolean {
+  return getFormResponses().some(
+    (r) => r.formId === formId && r.cpfHash === cpfHash
+  )
+}
+
+export function addFormResponse(
+  formId: string,
+  cpfHash: string,
+  maskedCPF: string,
+  answers: FormAnswer[]
+): FormResponse {
+  const responses = getFormResponses()
+  const newResponse: FormResponse = {
+    id: crypto.randomUUID(),
+    formId,
+    cpfHash,
+    maskedCPF,
+    answers,
+    createdAt: new Date().toISOString(),
+  }
+  responses.push(newResponse)
+  setItem(KEYS.formResponses, responses)
+  return newResponse
 }

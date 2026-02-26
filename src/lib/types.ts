@@ -67,3 +67,18 @@ export interface FormTemplate {
   createdAt: string
   updatedAt: string
 }
+
+// Form Responses
+export interface FormAnswer {
+  questionId: string
+  value: string | number // string for "texto", number for "avaliacao"
+}
+
+export interface FormResponse {
+  id: string
+  formId: string
+  cpfHash: string // SHA-256 hash of the CPF
+  maskedCPF: string // e.g. "***.***.***-09"
+  answers: FormAnswer[]
+  createdAt: string
+}

@@ -35,9 +35,12 @@ import {
   Star,
   AlignLeft,
   Settings2,
+  Share2,
+  Users,
 } from "lucide-react"
-import { getForms, addForm, deleteForm } from "@/lib/store"
+import { getForms, addForm, deleteForm, getFormResponsesByFormId } from "@/lib/store"
 import type { FormTemplate, FormQuestion } from "@/lib/types"
+import { encodeFormForURL } from "@/lib/form-share"
 import { FormBuilder } from "@/components/form-builder"
 import { toast } from "sonner"
 
@@ -69,6 +72,18 @@ export default function FormulariosPage() {
     refreshForms()
     setDeleteTarget(null)
     toast.success("Formulario excluido.")
+  }
+
+  const handleCopyLink = (formId: string) => {
+    const form = forms.find((f) => f.id === formId)
+    if (!form) return
+    const encoded = encodeFormForURL(form)
+    const url = `${window.location.origin}/responder/${formId}?d=${encoded}`
+    navigator.clipboard.writeText(url).then(() => {
+      toast.success("Link copiado para a area de transferencia!")
+    }).catch(() => {
+      toast.error("Nao foi possivel copiar o link.")
+    })
   }
 
   return (
@@ -122,6 +137,7 @@ export default function FormulariosPage() {
               const textCount = form.questions.filter(
                 (q) => q.type === "texto"
               ).length
+              const responseCount = getFormResponsesByFormId(form.id).length
 
               return (
                 <Card
@@ -139,6 +155,16 @@ export default function FormulariosPage() {
                           {new Date(form.createdAt).toLocaleDateString("pt-BR")}
                         </CardDescription>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-primary"
+                        onClick={() => handleCopyLink(form.id)}
+                        title="Compartilhar formulario"
+                      >
+                        <Share2 className="h-4 w-4" />
+                        <span className="sr-only">Compartilhar formulario</span>
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-4">
@@ -160,6 +186,10 @@ export default function FormulariosPage() {
                           {textCount} texto
                         </Badge>
                       )}
+                      <Badge variant="outline" className="gap-1 text-xs">
+                        <Users className="h-3 w-3" />
+                        {responseCount} resposta{responseCount !== 1 ? "s" : ""}
+                      </Badge>
                     </div>
 
                     {/* Actions */}
