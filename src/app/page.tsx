@@ -23,7 +23,7 @@ export default function HomePage() {
         </div>
 
         <h1 className="max-w-2xl text-3xl font-bold tracking-tight text-foreground text-balance sm:text-4xl lg:text-5xl animate-fade-in-up animate-delay-100">
-          Avaliacao anonima de supervisores
+          oscar
         </h1>
 
         <p className="max-w-lg text-base leading-relaxed text-muted-foreground text-pretty animate-fade-in-up animate-delay-200 sm:text-lg">
