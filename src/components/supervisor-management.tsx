@@ -45,13 +45,13 @@ import {
   Search,
 } from "lucide-react"
 import {
-  getCompanies,
-  getSupervisors,
-  addSupervisor,
-  updateSupervisor,
-  deleteSupervisor,
-  addCompany,
-} from "@/lib/store"
+  fetchCompanies,
+  fetchSupervisors,
+  createSupervisor,
+  editSupervisor,
+  removeSupervisor,
+  createCompany,
+} from "@/lib/api"
 import type { Company, Supervisor } from "@/lib/types"
 import { toast } from "sonner"
 
@@ -80,9 +80,14 @@ export function SupervisorManagement() {
   const [showAddCompanyDialog, setShowAddCompanyDialog] = useState(false)
   const [newCompanyName, setNewCompanyName] = useState("")
 
-  const refreshData = () => {
-    setCompanies(getCompanies())
-    setAllSupervisors(getSupervisors())
+  const refreshData = async () => {
+    try {
+      const [c, s] = await Promise.all([fetchCompanies(), fetchSupervisors()])
+      setCompanies(c)
+      setAllSupervisors(s)
+    } catch (err) {
+      console.error("Failed to load data:", err)
+    }
   }
 
   useEffect(() => {
@@ -101,7 +106,7 @@ export function SupervisorManagement() {
     return companies.find((c) => c.id === companyId)?.name || "N/A"
   }
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!newName.trim()) {
       toast.error("Insira o nome do supervisor.")
       return
@@ -110,42 +115,58 @@ export function SupervisorManagement() {
       toast.error("Selecione a empresa.")
       return
     }
-    addSupervisor(newName.trim(), newCompanyId)
-    toast.success("Supervisor adicionado com sucesso!")
-    setShowAddDialog(false)
-    setNewName("")
-    setNewCompanyId("")
-    refreshData()
+    try {
+      await createSupervisor(newName.trim(), newCompanyId)
+      toast.success("Supervisor adicionado com sucesso!")
+      setShowAddDialog(false)
+      setNewName("")
+      setNewCompanyId("")
+      refreshData()
+    } catch {
+      toast.error("Erro ao adicionar supervisor.")
+    }
   }
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
     if (!editName.trim()) {
       toast.error("Insira o nome do supervisor.")
       return
     }
-    updateSupervisor(editId, editName.trim())
-    toast.success("Supervisor atualizado!")
-    setShowEditDialog(false)
-    refreshData()
+    try {
+      await editSupervisor(editId, editName.trim())
+      toast.success("Supervisor atualizado!")
+      setShowEditDialog(false)
+      refreshData()
+    } catch {
+      toast.error("Erro ao atualizar supervisor.")
+    }
   }
 
-  const handleDelete = () => {
-    deleteSupervisor(deleteId)
-    toast.success("Supervisor removido.")
-    setShowDeleteDialog(false)
-    refreshData()
+  const handleDelete = async () => {
+    try {
+      await removeSupervisor(deleteId)
+      toast.success("Supervisor removido.")
+      setShowDeleteDialog(false)
+      refreshData()
+    } catch {
+      toast.error("Erro ao remover supervisor.")
+    }
   }
 
-  const handleAddCompany = () => {
+  const handleAddCompany = async () => {
     if (!newCompanyName.trim()) {
       toast.error("Insira o nome da empresa.")
       return
     }
-    addCompany(newCompanyName.trim())
-    toast.success("Empresa adicionada!")
-    setShowAddCompanyDialog(false)
-    setNewCompanyName("")
-    refreshData()
+    try {
+      await createCompany(newCompanyName.trim())
+      toast.success("Empresa adicionada!")
+      setShowAddCompanyDialog(false)
+      setNewCompanyName("")
+      refreshData()
+    } catch {
+      toast.error("Erro ao adicionar empresa.")
+    }
   }
 
   return (

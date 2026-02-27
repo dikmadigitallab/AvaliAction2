@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 import { clearAdminSession, getAdminName } from "@/lib/store"
 import { useState } from "react"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 const NAV_ITEMS = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -78,14 +79,17 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       {/* User */}
       <div className="border-t border-white/10 p-4">
-        <div className="flex items-center gap-3 mb-3 px-1">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15">
-            <UserCircle className="h-5 w-5 text-white/80" />
+        <div className="flex items-center justify-between mb-3 px-1">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15">
+              <UserCircle className="h-5 w-5 text-white/80" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="truncate text-sm font-medium text-white/90">{adminName}</p>
+              <p className="text-xs text-white/50">Administrador</p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="truncate text-sm font-medium text-white/90">{adminName}</p>
-            <p className="text-xs text-white/50">Administrador</p>
-          </div>
+          <ThemeToggle className="text-white/60 hover:bg-white/10 hover:text-white" />
         </div>
         <Button
           variant="ghost"
@@ -114,27 +118,30 @@ export function AdminSidebar() {
       </aside>
 
       {/* Mobile Topbar + Sheet */}
-      <div className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-card px-4 lg:hidden">
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9">
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">Abrir menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-60 p-0 [&>button]:hidden">
-            <SheetTitle className="sr-only">Menu de navegacao</SheetTitle>
-            <SidebarContent onNavigate={() => setOpen(false)} />
-          </SheetContent>
-        </Sheet>
-        <Image
-          src="https://i.ibb.co/Z61BpdnN/download.png"
-          alt="Dikma"
-          width={80}
-          height={27}
-          className="h-6 w-auto"
-          unoptimized
-        />
+      <div className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-card px-4 lg:hidden">
+        <div className="flex items-center gap-3">
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Abrir menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-60 p-0 [&>button]:hidden">
+              <SheetTitle className="sr-only">Menu de navegacao</SheetTitle>
+              <SidebarContent onNavigate={() => setOpen(false)} />
+            </SheetContent>
+          </Sheet>
+          <Image
+            src="https://i.ibb.co/Z61BpdnN/download.png"
+            alt="Dikma"
+            width={80}
+            height={27}
+            className="h-6 w-auto"
+            unoptimized
+          />
+        </div>
+        <ThemeToggle />
       </div>
     </>
   )

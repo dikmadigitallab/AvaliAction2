@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
-import { initializeStore, getAccessLogs } from "@/lib/store"
+import { initializeStore } from "@/lib/store"
+import { fetchAccessLogs } from "@/lib/api"
 import type { AccessLog } from "@/lib/types"
 import {
   Card,
@@ -36,7 +37,7 @@ export default function LogsPage() {
 
   useEffect(() => {
     initializeStore()
-    setLogs(getAccessLogs())
+    fetchAccessLogs().then(setLogs).catch(() => {})
   }, [])
 
   const filtered = useMemo(() => {

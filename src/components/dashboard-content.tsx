@@ -35,11 +35,11 @@ import {
   FileText,
 } from "lucide-react"
 import {
-  getCompanies,
-  getEvaluations,
-  getSupervisors,
-  getAccessLogs,
-} from "@/lib/store"
+  fetchCompanies,
+  fetchEvaluations,
+  fetchSupervisors,
+  fetchAccessLogs,
+} from "@/lib/api"
 import { exportEvaluationsToExcel, exportEvaluationsToPDF } from "@/lib/excel-export"
 import type { Company, Supervisor, Evaluation, EvaluationRatings } from "@/lib/types"
 import { CRITERIA_LABELS, CRITERIA_KEYS } from "@/lib/types"
@@ -56,10 +56,23 @@ export function DashboardContent() {
   const [totalAccesses, setTotalAccesses] = useState(0)
 
   useEffect(() => {
-    setCompanies(getCompanies())
-    setSupervisors(getSupervisors())
-    setEvaluations(getEvaluations())
-    setTotalAccesses(getAccessLogs().filter((l) => l.action === "login").length)
+    async function load() {
+      try {
+        const [c, s, e, logs] = await Promise.all([
+          fetchCompanies(),
+          fetchSupervisors(),
+          fetchEvaluations(),
+          fetchAccessLogs(),
+        ])
+        setCompanies(c)
+        setSupervisors(s)
+        setEvaluations(e)
+        setTotalAccesses(logs.filter((l) => l.action === "login").length)
+      } catch (err) {
+        console.error("Failed to load dashboard data:", err)
+      }
+    }
+    load()
   }, [])
 
   const overallAvg = useMemo(() => {

@@ -7,6 +7,7 @@ import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 const navItems = [
   { href: "/", label: "Inicio" },
@@ -36,67 +37,75 @@ export function SiteHeader() {
 
         {/* Desktop nav */}
         {!isAdmin && (
-          <nav className="hidden items-center gap-1 md:flex" aria-label="Principal">
-            {navItems.map((item) => (
+          <div className="hidden items-center gap-1 md:flex">
+            <nav className="flex items-center gap-1" aria-label="Principal">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+                    pathname === item.href
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+            <ThemeToggle />
+          </div>
+        )}
+
+        {isAdmin && (
+          <div className="hidden items-center gap-1 md:flex">
+            <nav className="flex items-center gap-1" aria-label="Admin">
               <Link
-                key={item.href}
-                href={item.href}
+                href="/admin/dashboard"
                 className={cn(
                   "rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-                  pathname === item.href
+                  pathname === "/admin/dashboard"
                     ? "bg-accent text-accent-foreground"
                     : "text-muted-foreground"
                 )}
               >
-                {item.label}
+                Dashboard
               </Link>
-            ))}
-          </nav>
-        )}
-
-        {isAdmin && (
-          <nav className="hidden items-center gap-1 md:flex" aria-label="Admin">
-            <Link
-              href="/admin/dashboard"
-              className={cn(
-                "rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-                pathname === "/admin/dashboard"
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground"
-              )}
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/admin/supervisores"
-              className={cn(
-                "rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-                pathname === "/admin/supervisores"
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground"
-              )}
-            >
-              Supervisores
-            </Link>
-            <Link
-              href="/"
-              className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              Sair
-            </Link>
-          </nav>
+              <Link
+                href="/admin/supervisores"
+                className={cn(
+                  "rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+                  pathname === "/admin/supervisores"
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground"
+                )}
+              >
+                Supervisores
+              </Link>
+              <Link
+                href="/"
+                className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                Sair
+              </Link>
+            </nav>
+            <ThemeToggle />
+          </div>
         )}
 
         {/* Mobile toggle */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
-        >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </Button>
+        <div className="flex items-center gap-1 md:hidden">
+          <ThemeToggle />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        </div>
       </div>
 
       {/* Mobile nav */}

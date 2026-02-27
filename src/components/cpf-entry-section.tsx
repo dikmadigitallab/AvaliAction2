@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Lock, ArrowRight } from "lucide-react"
 import { validateCPF, formatCPF, hashCPF } from "@/lib/anonymize"
 import { addAccessLog, maskCPF, verifyAdminCPF, setAdminSession } from "@/lib/store"
+import { createAccessLog } from "@/lib/api"
 import { toast } from "sonner"
 
 export function CpfEntrySection() {
@@ -33,12 +34,12 @@ export function CpfEntrySection() {
     // Check if admin CPF
     if (verifyAdminCPF(cleaned)) {
       setLoading(true)
-      addAccessLog({
+      createAccessLog({
         anonymousId: "admin",
         maskedCPF: maskCPF(cleaned),
         fullCPF: cleaned,
         action: "admin_login",
-      })
+      }).catch(() => {})
       setAdminSession()
       router.push("/admin/dashboard")
       return
@@ -53,12 +54,12 @@ export function CpfEntrySection() {
     try {
       const anonymousId = await hashCPF(cleaned)
       sessionStorage.setItem("anonymous_id", anonymousId)
-      addAccessLog({
+      createAccessLog({
         anonymousId,
         maskedCPF: maskCPF(cleaned),
         fullCPF: cleaned,
         action: "login",
-      })
+      }).catch(() => {})
       router.push("/evaluate")
     } catch {
       toast.error("Erro ao processar. Tente novamente.")
