@@ -4,10 +4,12 @@ import { useEffect, useState, useMemo } from "react"
 import Image from "next/image"
 import {
   initializeStore,
-  getCompanies,
-  getSupervisorsByCompany,
-  getEvaluationsBySupervisor,
 } from "@/lib/store"
+import {
+  fetchCompanies,
+  fetchSupervisors,
+  fetchEvaluations,
+} from "@/lib/api"
 import type { Company, Supervisor, Evaluation, EvaluationRatings } from "@/lib/types"
 import { CRITERIA_LABELS, CRITERIA_KEYS } from "@/lib/types"
 import {
@@ -61,11 +63,27 @@ interface SupervisorReport {
 
 export default function RelatoriosPage() {
   const [companies, setCompanies] = useState<Company[]>([])
+  const [allSupervisors, setAllSupervisors] = useState<Supervisor[]>([])
+  const [allEvaluations, setAllEvaluations] = useState<Evaluation[]>([])
   const [selectedCompany, setSelectedCompany] = useState("all")
 
   useEffect(() => {
     initializeStore()
-    setCompanies(getCompanies())
+    async function load() {
+      try {
+        const [c, s, e] = await Promise.all([
+          fetchCompanies(),
+          fetchSupervisors(),
+          fetchEvaluations(),
+        ])
+        setCompanies(c)
+        setAllSupervisors(s)
+        setAllEvaluations(e)
+      } catch (err) {
+        console.error("Failed to load reports data:", err)
+      }
+    }
+    load()
   }, [])
 
   const reports: SupervisorReport[] = useMemo(() => {
@@ -77,9 +95,9 @@ export default function RelatoriosPage() {
     const allReports: SupervisorReport[] = []
 
     for (const company of targetCompanies) {
-      const supervisors = getSupervisorsByCompany(company.id)
+      const supervisors = allSupervisors.filter((s) => s.companyId === company.id)
       for (const sup of supervisors) {
-        const evals = getEvaluationsBySupervisor(sup.id)
+        const evals = allEvaluations.filter((e) => e.supervisorId === sup.id)
         if (evals.length === 0) continue
 
         const averages: Record<string, number> = {}
@@ -108,7 +126,7 @@ export default function RelatoriosPage() {
     }
 
     return allReports.sort((a, b) => b.overallAvg - a.overallAvg)
-  }, [companies, selectedCompany])
+  }, [companies, allSupervisors, allEvaluations, selectedCompany])
 
   const radarData = useMemo(() => {
     if (reports.length === 0) return []

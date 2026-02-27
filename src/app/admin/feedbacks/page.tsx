@@ -27,10 +27,10 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { MessageSquare, AlertTriangle, Download, Filter, FileText } from "lucide-react"
 import {
-  getCompanies,
-  getEvaluations,
-  getSupervisors,
-} from "@/lib/store"
+  fetchCompanies,
+  fetchEvaluations,
+  fetchSupervisors,
+} from "@/lib/api"
 import { exportEvaluationsToExcel, exportEvaluationsToPDF } from "@/lib/excel-export"
 import type { Company, Supervisor, Evaluation, EvaluationRatings } from "@/lib/types"
 import { CRITERIA_LABELS, CRITERIA_KEYS } from "@/lib/types"
@@ -49,9 +49,21 @@ export default function FeedbacksPage() {
   const [filterSupervisor, setFilterSupervisor] = useState("all")
 
   useEffect(() => {
-    setCompanies(getCompanies())
-    setSupervisors(getSupervisors())
-    setEvaluations(getEvaluations())
+    async function load() {
+      try {
+        const [c, s, e] = await Promise.all([
+          fetchCompanies(),
+          fetchSupervisors(),
+          fetchEvaluations(),
+        ])
+        setCompanies(c)
+        setSupervisors(s)
+        setEvaluations(e)
+      } catch (err) {
+        console.error("Failed to load feedbacks:", err)
+      }
+    }
+    load()
   }, [])
 
   const filteredEvals = useMemo(() => {

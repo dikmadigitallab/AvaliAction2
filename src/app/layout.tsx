@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next"
+import { ThemeProvider } from "@/components/theme-provider"
 
 import "./globals.css"
 
@@ -32,10 +33,17 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html>
+    <html lang="pt-BR" suppressHydrationWarning>
       <body className="font-sans antialiased" suppressHydrationWarning>
-        <main>{children}</main>
-
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange={false}
+          storageKey="dikma-theme"
+        >
+          <main>{children}</main>
+        </ThemeProvider>
       </body>
     </html>
   )

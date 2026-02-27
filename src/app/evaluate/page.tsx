@@ -7,13 +7,15 @@ import { SiteHeader } from "@/components/site-header"
 import { StarRating } from "@/components/star-rating"
 import {
   initializeStore,
-  getCompanies,
-  getSupervisorsByCompany,
-  hasEvaluated,
-  addEvaluation,
-  addAccessLog,
   maskCPF,
 } from "@/lib/store"
+import {
+  fetchCompanies,
+  fetchSupervisors,
+  checkHasEvaluated,
+  submitEvaluation,
+  createAccessLog,
+} from "@/lib/api"
 import { containsProfanity } from "@/lib/profanity"
 import type { Company, EvaluationRatings } from "@/lib/types"
 import { CRITERIA_LABELS, CRITERIA_KEYS } from "@/lib/types"
@@ -62,6 +64,7 @@ export default function EvaluatePage() {
   const [comment, setComment] = useState("")
   const [profanityWarning, setProfanityWarning] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [evaluatedMap, setEvaluatedMap] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     mounted.current = true
@@ -73,7 +76,7 @@ export default function EvaluatePage() {
     }
     if (mounted.current) {
       setAnonymousId(id)
-      setCompanies(getCompanies())
+      fetchCompanies().then((c) => { if (mounted.current) setCompanies(c) }).catch(() => {})
       setReady(true)
     }
     return () => {
@@ -81,15 +84,29 @@ export default function EvaluatePage() {
     }
   }, [router])
 
-  const selectCompany = useCallback((company: Company) => {
+  const selectCompany = useCallback(async (company: Company) => {
     setSelectedCompany(company)
-    setSupervisors(getSupervisorsByCompany(company.id))
+    try {
+      const sups = await fetchSupervisors(company.id)
+      setSupervisors(sups)
+      // Load evaluated status for each supervisor
+      if (anonymousId) {
+        const results = await Promise.all(
+          sups.map((s) => checkHasEvaluated(anonymousId, s.id).then((v) => [s.id, v] as const))
+        )
+        setEvaluatedMap(Object.fromEntries(results))
+      }
+    } catch {
+      setSupervisors([])
+    }
     setStep("supervisor")
-  }, [])
+  }, [anonymousId])
 
   const selectSupervisor = useCallback(
-    (sup: SupervisorLocal) => {
-      if (!anonymousId || hasEvaluated(anonymousId, sup.id)) return
+    async (sup: SupervisorLocal) => {
+      if (!anonymousId) return
+      const evaluated = await checkHasEvaluated(anonymousId, sup.id)
+      if (evaluated) return
       setSelectedSupervisor(sup)
       setRatings({ ...EMPTY_RATINGS })
       setComment("")
@@ -110,24 +127,29 @@ export default function EvaluatePage() {
     if (!anonymousId || !selectedCompany || !selectedSupervisor || !allRated) return
     if (profanityWarning) return
     setSubmitting(true)
-    setTimeout(() => {
-      addEvaluation({
+
+    Promise.all([
+      submitEvaluation({
         anonymousId,
         companyId: selectedCompany.id,
         supervisorId: selectedSupervisor.id,
         ratings,
         comment: comment.trim() || undefined,
-      })
-      addAccessLog({
+      }),
+      createAccessLog({
         anonymousId,
         maskedCPF: "***.***.***-**",
         companyId: selectedCompany.id,
         companyName: selectedCompany.name,
         action: "evaluation",
-      })
+      }),
+    ]).then(() => {
       setSubmitting(false)
       setStep("done")
-    }, 600)
+    }).catch(() => {
+      setSubmitting(false)
+      setStep("done")
+    })
   }, [anonymousId, selectedCompany, selectedSupervisor, allRated, profanityWarning, ratings, comment])
 
   const goBack = useCallback(() => {
@@ -276,7 +298,7 @@ export default function EvaluatePage() {
             </p>
             <div className="grid gap-2 sm:gap-3">
               {supervisors.map((sup) => {
-                const evaluated = anonymousId ? hasEvaluated(anonymousId, sup.id) : false
+                const evaluated = evaluatedMap[sup.id] ?? false
                 return (
                   <button
                     key={sup.id}

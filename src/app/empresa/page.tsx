@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { initializeStore, getCompanies } from "@/lib/store"
+import { initializeStore } from "@/lib/store"
+import { fetchCompanies } from "@/lib/api"
 import { ArrowRight, Building2 } from "lucide-react"
 import type { Company } from "@/lib/types"
 
@@ -15,8 +16,7 @@ export default function EmpresaPage() {
 
   useEffect(() => {
     initializeStore()
-    const data = getCompanies()
-    setCompanies(data)
+    fetchCompanies().then(setCompanies).catch(() => {})
   }, [])
 
   const handleSelectCompany = (company: Company) => {
